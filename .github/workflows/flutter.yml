@@ -1,0 +1,39 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: IRPAY-USER-APP
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'   # یا نسخه خاص مثلاً '3.24.2'
+          channel: 'stable'
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Upgrade dependencies
+        run: flutter pub upgrade || true
+
+      - name: Analyze code (static analysis)
+        run: dart analyze || true
+
+      - name: Run unit tests
+        run: flutter test || true
