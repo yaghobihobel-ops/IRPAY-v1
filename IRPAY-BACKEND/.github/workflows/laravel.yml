@@ -20,7 +20,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'   # Laravel packages break on 8.4
+          php-version: '8.3'  # جلوگیری از باگ‌های PHP 8.4
           extensions: mbstring, bcmath, pdo_mysql, intl
           tools: composer
 
