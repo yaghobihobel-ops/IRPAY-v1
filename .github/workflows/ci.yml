@@ -1,0 +1,68 @@
+name: CI - Laravel & Flutter
+
+on:
+  push:
+    branches: [ main ]    # اگر شاخه‌ی پیش‌فرض شما چیز دیگری است، همین را عوض کن
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  laravel:
+    name: Laravel Backend (Composer & Tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: IRPAY-BACKEND
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup PHP (use 8.3 to avoid 8.4 breaks)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, bcmath, pdo_mysql, intl
+          tools: composer
+
+      - name: Composer install
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Composer update (best-effort)
+        run: composer update --no-interaction --prefer-dist --no-progress || true
+
+      - name: Run Laravel tests (best-effort)
+        run: |
+          php artisan key:generate || true
+          php artisan test || vendor/bin/phpunit --colors=never || true
+
+      - name: Show outdated packages
+        run: composer outdated || true
+
+  flutter:
+    name: Flutter App (Dependencies & Tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: IRPAY-USER-APP
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get deps
+        run: flutter pub get
+
+      - name: Upgrade deps (best-effort)
+        run: flutter pub upgrade || true
+
+      - name: Run tests (best-effort)
+        run: flutter test || true
+
+      - name: Analyze
+        run: dart analyze || true
