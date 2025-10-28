@@ -17,13 +17,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 🟢 نصب دقیق Flutter 3.24.4 (پایدارترین نسخه stable در 2025)
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'   # یا نسخه خاص مثلاً '3.24.4'
+          flutter-version: '3.24.4'
           channel: 'stable'
 
-      - name: Flutter version
+      - name: Verify Flutter version
         run: flutter --version
 
       - name: Get dependencies
@@ -32,7 +33,7 @@ jobs:
       - name: Upgrade dependencies
         run: flutter pub upgrade || true
 
-      - name: Analyze code (static analysis)
+      - name: Analyze code
         run: dart analyze || true
 
       - name: Run unit tests
