@@ -2,7 +2,7 @@ name: CI - Laravel & Flutter
 
 on:
   push:
-    branches: [ main ]    # اگر شاخه‌ی پیش‌فرض شما چیز دیگری است، همین را عوض کن
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
@@ -15,20 +15,20 @@ jobs:
         working-directory: IRPAY-BACKEND
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup PHP (use 8.3 to avoid 8.4 breaks)
+      - name: Setup PHP (fallback to 8.3)
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           extensions: mbstring, bcmath, pdo_mysql, intl
           tools: composer
 
-      - name: Composer install
+      - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Composer update (best-effort)
+      - name: Update dependencies (best-effort)
         run: composer update --no-interaction --prefer-dist --no-progress || true
 
       - name: Run Laravel tests (best-effort)
@@ -47,7 +47,7 @@ jobs:
         working-directory: IRPAY-USER-APP
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Flutter
@@ -55,14 +55,14 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Get deps
+      - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Upgrade deps (best-effort)
+      - name: Upgrade Flutter dependencies (best-effort)
         run: flutter pub upgrade || true
 
-      - name: Run tests (best-effort)
+      - name: Run Flutter tests (best-effort)
         run: flutter test || true
 
-      - name: Analyze
+      - name: Analyze Dart code
         run: dart analyze || true
