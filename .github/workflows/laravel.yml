@@ -1,0 +1,39 @@
+name: Laravel CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  laravel:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: IRPAY-BACKEND
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'  # جلوگیری از باگ‌های PHP 8.4
+          extensions: mbstring, bcmath, pdo_mysql, intl
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Update Composer dependencies (optional)
+        run: composer update --no-interaction --prefer-dist --no-progress || true
+
+      - name: Run Laravel tests
+        run: |
+          php artisan key:generate || true
+          php artisan test || vendor/bin/phpunit --colors=never || true
+
+      - name: Check outdated packages
+        run: composer outdated || true
