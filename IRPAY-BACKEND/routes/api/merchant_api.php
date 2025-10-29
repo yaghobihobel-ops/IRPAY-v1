@@ -133,6 +133,8 @@ Route::prefix('merchant')->group(function(){
                 Route::post('key/generate','generateApiKeys')->middleware(['app.mode.api','api.kyc']);
                 Route::post('mode/update','updateMode')->middleware(['app.mode.api','api.kyc']);
                 Route::post('key/delete','deleteKys')->middleware(['app.mode.api','api.kyc']);
+                Route::post('secret/rotate','rotateSecret')->middleware(['app.mode.api','api.kyc']);
+                Route::post('secret/revoke','revokeSecret')->middleware(['app.mode.api','api.kyc']);
             });
             //merchant gateway settings
             Route::controller(GatewaySettingController::class)->prefix('gateway-settings')->group(function(){

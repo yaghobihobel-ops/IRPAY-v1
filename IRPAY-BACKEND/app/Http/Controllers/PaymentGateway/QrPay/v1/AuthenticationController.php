@@ -13,6 +13,7 @@ use App\Constants\PaymentGatewayConst;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Merchants\PaymentOrderRequest;
 use App\Models\Merchants\DeveloperApiCredential;
+use App\Models\Merchants\DeveloperApiCredentialSecret;
 
 class AuthenticationController extends Controller
 {
@@ -21,8 +22,8 @@ class AuthenticationController extends Controller
 
     public function generateToken(Request $request) {
         $validator = Validator::make($request->all(),[
-            'client_id'     => "required|string|exists:developer_api_credentials",
-            'secret_id'     => "required|string|exists:developer_api_credentials,client_secret",
+            'client_id'     => "required|string|exists:developer_api_credentials,client_id",
+            'secret_id'     => "required|string",
         ],[
             'client_id'    => "Invalid client ID",
             'secret_id'    => "Invalid secret ID",
@@ -31,22 +32,23 @@ class AuthenticationController extends Controller
         if($validator->fails()) return Response::paymentApiError($validator->errors()->all(),[]);
 
         $validated = $validator->validate();
+        $scope = request()->is("*/sandbox/*") ? PaymentGatewayConst::ENV_SANDBOX : PaymentGatewayConst::ENV_PRODUCTION;
 
-        if(request()->is("*/sandbox/*")) {
-            // request url comes from sandbox
-            $developer_credentials = DeveloperApiCredential::where(DB::raw('BINARY `client_id`'),$validated['client_id'])
-                                                        ->where(DB::raw("BINARY `client_secret`"),$validated['secret_id'])
-                                                        ->where('mode',PaymentGatewayConst::ENV_SANDBOX)
-                                                        ->first();
-        }else {
-            // request url comes from production URL
-            $developer_credentials = DeveloperApiCredential::where(DB::raw('BINARY `client_id`'),$validated['client_id'])
-                                                        ->where(DB::raw("BINARY `client_secret`"),$validated['secret_id'])
-                                                        ->where('mode',PaymentGatewayConst::ENV_PRODUCTION)
-                                                        ->first();
+        $developer_credentials = DeveloperApiCredential::where(DB::raw('BINARY `client_id`'),$validated['client_id'])->first();
+        if(!$developer_credentials || !$developer_credentials->status) {
+            return Response::paymentApiError([__('Requested credentials is invalid')]);
         }
 
-        if(!$developer_credentials) return Response::paymentApiError([__('Requested credentials is invalid')]);
+        $identifier = DeveloperApiCredentialSecret::buildIdentifier($validated['secret_id']);
+        $secretRecord = DeveloperApiCredentialSecret::where('developer_api_credential_id', $developer_credentials->id)
+            ->where('scope', $scope)
+            ->whereNull('revoked_at')
+            ->where('secret_identifier', $identifier)
+            ->first();
+
+        if(!$secretRecord) {
+            return Response::paymentApiError([__('Requested credentials is invalid')]);
+        }
 
         $access_token = generate_unique_string('payment_order_requests','access_token',350);
         $token = generate_unique_string('payment_order_requests','token',60);
@@ -71,6 +73,7 @@ class AuthenticationController extends Controller
                 'request_user_type' => GlobalConst::USER,
                 'created_at'        => now(),
             ]);
+            $developer_credentials->markSecretUsage($secretRecord, 'system');
             DB::commit();
         }catch(Exception $e) {
             DB::rollBack();

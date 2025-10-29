@@ -27,7 +27,12 @@ class DeveloperApiController extends Controller
     {
         $merchant = auth()->user();
         $page_title = __("API Credentials");
-        $apis = DeveloperApiCredential::auth()->active()->latest()->paginate(20);
+        $apis = DeveloperApiCredential::auth()
+            ->with(['secrets' => function($query) {
+                $query->orderBy('scope')->orderByDesc('id');
+            }])
+            ->latest()
+            ->paginate(20);
         return view('merchant.sections.api.index',compact('page_title','apis'));
     }
 
@@ -64,24 +69,57 @@ class DeveloperApiController extends Controller
             'name'     => "required|string|max:100",
         ])->validate();
         $merchant =  userGuard()['user'];
-        $check = DeveloperApiCredential::where('name',$validated['name'])->first();
+        $check = DeveloperApiCredential::auth()->where('name',$validated['name'])->first();
         if( $check){
             return back()->with(['error' => [__("The developer API key with this name has already been created")]]);
         }
         try{
-            DeveloperApiCredential::create([
-                'merchant_id'       => $merchant->id,
-                'name'              => $validated['name'],
-                'client_id'         => generate_unique_string("developer_api_credentials","client_id",100),
-                'client_secret'     => generate_unique_string("developer_api_credentials","client_secret",100),
-                'mode'              => PaymentGatewayConst::ENV_SANDBOX,
-                'status'            => true,
-                'created_at'        => now(),
-            ]);
+            [, $secrets] = DeveloperApiCredential::provisionForMerchant($merchant, $validated['name']);
         }catch(Exception $e) {
             return back()->with(['error' => [__("Something went wrong! Please try again.")]]);
         }
-        return back()->with(['success' => [__('Api Keys Created Successfully')]]);
+        return back()->with([
+            'success' => [__('Api Keys Created Successfully')],
+            'developer_api_secret' => $secrets,
+        ]);
 
+    }
+
+    public function rotateSecret(Request $request)
+    {
+        $validated = Validator::make($request->all(),[
+            'target' => 'required|integer',
+            'scope' => 'required|string|in:' . implode(',', DeveloperApiCredential::defaultScopes()),
+        ])->validate();
+
+        $credential = DeveloperApiCredential::where('id', $validated['target'])->auth()->first();
+        if(!$credential) return back()->with(['error' => [__('Developer API not found!')]]);
+
+        try{
+            [, $secret] = $credential->rotateSecret($validated['scope'], null, 'merchant', auth()->id());
+        }catch(Exception $e) {
+            return back()->with(['error' => [__("Something went wrong! Please try again.")]]);
+        }
+
+        return back()->with([
+            'success' => [__('Secret rotated successfully. Store the new secret securely.')],
+            'developer_api_secret' => [$validated['scope'] => $secret],
+        ]);
+    }
+
+    public function revokeSecret(Request $request)
+    {
+        $validated = Validator::make($request->all(),[
+            'target' => 'required|integer',
+            'scope' => 'required|string|in:' . implode(',', DeveloperApiCredential::defaultScopes()),
+        ])->validate();
+
+        $credential = DeveloperApiCredential::where('id', $validated['target'])->auth()->first();
+        if(!$credential) return back()->with(['error' => [__('Developer API not found!')]]);
+
+        $secret = $credential->revokeScope($validated['scope'], 'merchant', auth()->id());
+        if(!$secret) return back()->with(['error' => [__('No active secret found for the requested scope.')]]);
+
+        return back()->with(['success' => [__('Secret revoked successfully')]]);
     }
 }

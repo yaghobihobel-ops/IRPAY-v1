@@ -40,16 +40,7 @@ trait RegisteredUsers {
 
     protected function createDeveloperApiReg($user) {
         try{
-            DeveloperApiCredential::create([
-                'merchant_id'       => $user->id,
-                'name'              => 'Test Name',
-                'client_id'         => generate_unique_string("developer_api_credentials","client_id",100),
-                'client_secret'     => generate_unique_string("developer_api_credentials","client_secret",100),
-                'mode'              => PaymentGatewayConst::ENV_SANDBOX,
-                'status'            => true,
-                'created_at'        => now(),
-            ]);
-
+            DeveloperApiCredential::provisionForMerchant($user, 'Test Name');
             // create developer sandbox wallets
             $this->createSandboxWallets($user);
         }catch(Exception $e) {

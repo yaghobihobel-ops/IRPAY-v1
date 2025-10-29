@@ -95,6 +95,8 @@ Route::prefix("merchant")->name("merchant.")->group(function(){
             Route::post('generate/keys','generateApiKeys')->name('generate.keys')->middleware(['app.mode','kyc.verification.guard']);
             Route::post('mode/update','updateMode')->name('mode.update')->middleware(['app.mode','kyc.verification.guard']);
             Route::post('keys/delete','deleteKys')->name('delete.keys')->middleware(['app.mode','kyc.verification.guard']);
+            Route::post('secret/rotate','rotateSecret')->name('secret.rotate')->middleware(['app.mode','kyc.verification.guard']);
+            Route::post('secret/revoke','revokeSecret')->name('secret.revoke')->middleware(['app.mode','kyc.verification.guard']);
         });
     });
     //merchant gateway settings
