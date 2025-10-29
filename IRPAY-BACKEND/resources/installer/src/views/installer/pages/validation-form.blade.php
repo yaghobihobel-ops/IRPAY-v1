@@ -24,7 +24,7 @@
                 </div>
 
                 <p>
-                    If you haven't generated a product key yet, <a href="https://appdevs.net/generate-product-key" target="_blank"><strong><span>click here to generate your product key.</span></strong></a>
+                    If you haven't generated a product key yet, <a href="https://adupasr.ir/generate-product-key" target="_blank"><strong><span>click here to generate your product key.</span></strong></a>
                 </p>
             </form>
         </div>
