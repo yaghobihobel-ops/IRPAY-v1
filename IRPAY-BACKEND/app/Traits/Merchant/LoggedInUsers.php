@@ -88,25 +88,22 @@ trait LoggedInUsers {
         }
     }
     protected function createDeveloperApi($user) {
-        $developing_api = DeveloperApiCredential::where('merchant_id',$user->id)->first();
+        $developing_api = DeveloperApiCredential::where('merchant_id', $user->id)->first();
         try{
             if($developing_api){
-                $developing_api->merchant_id  = $developing_api->merchant_id;
-                $developing_api->client_id  = $developing_api->client_id;
-                $developing_api->client_secret  = $developing_api->client_secret;
-                $developing_api->mode  = $developing_api->mode;
-                $developing_api->save();
-
+                if($developing_api->secrets()->count() === 0) {
+                    foreach(DeveloperApiCredential::defaultScopes() as $scope) {
+                        $developing_api->issueSecret($scope, null, false, 'merchant', $user->id);
+                    }
+                    $activeSecrets = $developing_api->activeSecrets();
+                    if(!empty($activeSecrets)) {
+                        $first = reset($activeSecrets);
+                        $developing_api->forceFill(['client_secret' => $first->secret_identifier])->save();
+                    }
+                }
             }else{
-            DeveloperApiCredential::create([
-                'merchant_id'       => $user->id,
-                'client_id'         => generate_unique_string("developer_api_credentials", "client_id", 100),
-                'client_secret'     => generate_unique_string("developer_api_credentials", "client_secret", 100),
-                'mode'              => PaymentGatewayConst::ENV_SANDBOX,
-                'status'            => true,
-                'created_at'        => now(),
-            ]);
-        }
+                DeveloperApiCredential::provisionForMerchant($user, 'Primary');
+            }
 
         }catch(Exception $e) {
 
